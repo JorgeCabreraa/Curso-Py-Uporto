@@ -1,5 +1,6 @@
 import sqlite3
 from datetime import datetime
+
 class DatabaseManager:
     '''gestiona la persistencia de datos en SQLite para el escaner de red.'''
 
@@ -16,29 +17,29 @@ class DatabaseManager:
             cursor = conn.cursor()
             #tabla de hosts
             cursor.execute('''
-            CREATE TABLE IF NOT EXIST hosts (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                ip_address TEXT UNIQUE NOT NULL,
-                mac_address TEXT,
-                hostname TEXT,
-                first_seen TIMESTAMP,
-                last_seen TIMESTAMP
-            )
-        ''')
-        #tabla de resultados de escaneo [cite: 65]
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS scan_results (
-                       id INTEGER PRIMARY KEY AUTOINCREMENT,
-                       host_id INTEGER,
-                       time_stamp TIMESTAMP,
-                       checkeed_ports TEXT,
-                       open_ports TEXT,
-                       open_ports TEXT,
-                       FOREIGN KEY (host_id) REFERENCES hosts (id)
-            )
-        ''')
+                CREATE TABLE IF NOT EXISTS hosts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ip_address TEXT UNIQUE NOT NULL,
+                    mac_address TEXT,
+                    hostname TEXT,
+                    first_seen TIMESTAMP,
+                    last_seen TIMESTAMP
+                )
+            ''')
+            #tabla de resultados de escaneo [cite: 65]
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS scan_results (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    host_id INTEGER,
+                    time_stamp TIMESTAMP,
+                    checkeed_ports TEXT,
+                    open_ports TEXT,
+                    FOREIGN KEY (host_id) REFERENCES hosts (id)
+                )
+            ''')
         conn.commit()
-    def add_host(self, ip: str, mac: str = none, hostname: str = none):
+
+    def add_host(self, ip: str, mac: str = None, hostname: str = None):
         '''Registra o actualiza un host descubierto.'''
         now = datetime.now().isoformat()
         with self._get_connection() as conn:
@@ -46,7 +47,14 @@ class DatabaseManager:
             cursor.execute('''
                 INSERT INTO hosts (ip:address, mac_address, hostname, first_seen, last_seen)
                 VALUES (?, ?, ?, ?, ?)
-                on conflict (IP_ADDRESS) dont update set
+                ON CONFLICT (IP_ADDRESS) dont update set
                     LAST_SEEN = excluded. last_seen,
-                           hostname = COALESCE (excluded.hostname, hosts)
-                           )
+                    hostname = COALESCE (excluded.hostname, hosts.hostname),
+                    mac_address = COALSCE(excluded.cam_address, hosts.mac_address)
+            ''', (ip, mac, hostname, now, now))
+            conn.commit()
+
+#Ejemplo de uno inicial
+if __name__ == "__main__":
+    db = DatabaseManager()
+    print("Base de datos inicializada correctamente.")
