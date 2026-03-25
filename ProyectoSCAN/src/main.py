@@ -1,27 +1,81 @@
+import argparse
 import sys
 import os
 
-# Ensure that Python can find the local modules in the 'src' folder
+# Asegurar que encuentre los módulos locales
 sys.path.append(os.path.dirname(__file__))
 
 from scanner import NetworkScanner
 from database import DatabaseManager
 from config import Config
 
-def run_discovery():
-    """Perform configuration-based discovery[cite: 45, 80]."""
+def cmd_discover(args, cfg, db):
+    """Lógica para el comando 'discover'"""
+    target = args.range or cfg.default_range
+    print(f"[*] Searching for devices on: {target}...")
+    found = NetworkScanner.discover_devices(target)
+    
+    for dev in found:
+        db.add_host(ip=dev['ip'], mac=dev.get('mac'))
+        print(f"[+] Host detected: {dev['ip']} ({dev.get('mac', 'N/A')})")
+    print(f"\n[!] Summary: {len(found)} identified hosts.") #[cite: 88]
+
+def cmd_scan(args, cfg, db):
+    """Lógica para el comando 'scan'"""
+    ports = cfg.default_ports
+    print(f"[*] Scanning common ports on: {args.ip}...")
+    open_ports = NetworkScanner.scan_ports(args.ip, ports)
+    
+    # Guardar resultado en DB
+    db.add_scan_result(args.ip, ports, open_ports)
+    
+    if open_ports:
+        print(f"[+] Open ports on {args.ip}: {open_ports}")
+    else:
+        print(f"[-] No open ports were found on {args.ip}.") #[cite: 87]
+
+def main():
     cfg = Config()
     db = DatabaseManager(cfg.db_path)
     
-    print(f"[*] Beginning the discovery phase in: {cfg.default_range}")
-    # Discovery via ARP or ping sweep [cite: 47, 73]
-    found_devices = NetworkScanner.discover_devices(cfg.default_range)
+    # Configuramos argparse para manejar subcomandos 
+    parser = argparse.ArgumentParser(description="CyberScanner CLI - Network Audit Tool")
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
-    for device in found_devices:
-        db.add_host(ip=device['ip'], mac=device.get('mac'))
-        print(f"[+] Registered device: {device['ip']}")
+    # Subcomando: discover [cite: 45]
+    desc_parser = subparsers.add_parser("discover", help="Discover devices on the network")
+    desc_parser.add_argument("--range", help="Rango CIDR (ej: 192.168.1.0/24)")
 
-    print(f"\n[!] Task completed: {len(found_devices)} hosts identificados[cite: 88].")
+    # Subcomando: scan [cite: 49]
+    scan_parser = subparsers.add_parser("scan", help="Scan a host's ports")
+    scan_parser.add_argument("ip", help="IP address of the host to be scanned")
+    # Subcomando: list-hosts
+    subparsers.add_parser("list-hosts", help="Show all known hosts")
+
+    args = parser.parse_args()
+
+    # Ejecución según el comando ingresado
+    if args.command == "discover":
+        cmd_discover(args, cfg, db)
+    elif args.command == "scan":
+        cmd_scan(args, cfg, db)
+    elif args.command == "list-hosts":
+        cmd_list(args, cfg, db)
+    else:
+        parser.print_help()
+    
+
+def cmd_list(args, cfg, db):
+    """Logic for the ‘list-hosts’ command'"""
+    hosts = db.get_all_hosts()
+    if not hosts:
+        print("[!] There are no hosts registered in the database.")
+        return
+
+    print(f"{'IP':<15} | {'MAC':<17} | {'Last seen':<20}")
+    print("-" * 55)
+    for h in hosts:
+        print(f"{h['ip_address']:<15} | {h['mac_address'] or 'N/A':<17} | {h['last_seen'][:19]}")
 
 if __name__ == "__main__":
-    run_discovery()
+    main()

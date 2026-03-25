@@ -10,10 +10,12 @@ class DatabaseManager:
         self._init_db()
 
     def _get_connection(self):
-        return sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row #Esto permite acceder por nombre de columna [cite: 54]
+        return conn
 
     def _init_db(self):
-        """Create the tables according to the required data model[cite: 61, 69]."""
+        """Create the tables according to the required data model [cite: 61, 69]."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
             # Host Table: ID, IP, MAC, hostname, dates [cite: 63]
@@ -25,6 +27,18 @@ class DatabaseManager:
                     hostname TEXT,
                     first_seen TIMESTAMP,
                     last_seen TIMESTAMP
+                )
+            ''')
+
+            #Table scan results [cite: 64, 65]
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS scan_results (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    host_id INTEGER,
+                    timestamp TIMESTAMP,
+                    checked_ports TEXT,
+                    open_ports TEXT,
+                    FOREIGN KEY (host_id) REFERENCES hosts (id)
                 )
             ''')
             conn.commit()
@@ -45,3 +59,27 @@ class DatabaseManager:
             '''
             cursor.execute(sql, (ip, mac, hostname, now, now))
             conn.commit()
+    def add_scan_result(self, host_ip: str, checked_ports: list, open_ports: list):
+        """Guarda el historial de un escaneo de puertos."""
+        now = datetime.now().isoformat()
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            #Buscamos el ID del host usando su IP
+            cursor.execute('SELECT id FROM hosts WHERE ip_address = ?', (host_ip,))
+            host_row = cursor.fetchone()
+
+            if host_row:
+                host_id = host_row['id'] #Acceso por nombre
+                cursor.execute('''
+                    INSERT INTO scan_results (host_id, timestamp, checked_ports, open_ports)
+                    VALUES (?, ?, ?, ?)
+                ''', (host_id, now, str(checked_ports), str (open_ports)))
+                conn.commit()
+
+    def get_all_hosts(self):
+        """recupera todos los hosts de la base de datos."""
+        with self._get_connection() as conn:
+            conn.row_factory = sqlite3.Row #permite acceder al nombre de la columna
+            cursor = conn.cursor()
+            cursor.execute('SELECT * FROM hosts ORDER BY last_seen DESC')
+            return cursor.fetchall()

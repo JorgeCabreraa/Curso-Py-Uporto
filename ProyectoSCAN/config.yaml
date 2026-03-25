@@ -1,11 +1,11 @@
 #Default Network Scanner Settings
 network:
-  [cite_start]default_range: "192.168.1.0/24" #This varies depending on your local network [Cite: 80]
-  [cite_start]timeout: 1.0                    #Wait time in seconds per port [Cite: 76]
+  default_range: "192.168.1.0/24" #This varies depending on your local network [Cite: 80]
+  timeout: 1.0                    #Wait time in seconds per port [Cite: 76]
 
 scanning:
   #Common ports for identifying basic services [Cite: 51, 81]
   default_ports: [22, 80, 446, 3389, 8080]
 
 storage:
-  [cite_start]db_path: "network_scanner.db" #SQLite database path [Cite: 82]
+  db_path: "network_scanner.db" #SQLite database path [Cite: 82]
