@@ -83,3 +83,17 @@ class DatabaseManager:
             cursor = conn.cursor()
             cursor.execute('SELECT * FROM hosts ORDER BY last_seen DESC')
             return cursor.fetchall()
+        
+    def get_scan_history(self, host_ip: str):
+        """Recupera el historial de escaneos para una IP específica."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            query = '''
+                SELECT sr.timestamp, sr.checked_ports, sr.open_ports
+                FROM scan_results sr
+                JOIN hosts h ON sr.host_id = h.id
+                WHERE h.ip_address = ?
+                ORDER BY sr.timestamp DESC
+            '''
+            cursor.execute(query, (host_ip,))
+            return cursor.fetchall()

@@ -52,6 +52,10 @@ def main():
     # Subcomando: list-hosts
     subparsers.add_parser("list-hosts", help="Show all known hosts")
 
+    history_parser = subparsers.add_parser("history", help="View scan history for an IP address")
+    history_parser.add_argument("ip", help="IP from the host to be queried")
+                                           
+
     args = parser.parse_args()
 
     # Ejecución según el comando ingresado
@@ -61,6 +65,8 @@ def main():
         cmd_scan(args, cfg, db)
     elif args.command == "list-hosts":
         cmd_list(args, cfg, db)
+    elif args.command == "history":
+        cmd_history(args,cfg ,db)
     else:
         parser.print_help()
     
@@ -76,6 +82,22 @@ def cmd_list(args, cfg, db):
     print("-" * 55)
     for h in hosts:
         print(f"{h['ip_address']:<15} | {h['mac_address'] or 'N/A':<17} | {h['last_seen'][:19]}")
+
+def cmd_history(args, cfg, db):
+    """Lógica para el comando 'history'"""
+    print(f"[*] Consultando historial para: {args.ip}...")
+    history = db.get_scan_history(args.ip)
+    
+    if not history:
+        print(f"[!] No hay registros de escaneos para la IP: {args.ip}")
+        return
+
+    print(f"\n{'Fecha y Hora':<20} | {'Puertos Abiertos'}")
+    print("-" * 50)
+    for row in history:
+        # Formateamos la fecha para que se vea limpia
+        date_str = row['timestamp'][:19].replace('T', ' ')
+        print(f"{date_str:<20} | {row['open_ports']}")
 
 if __name__ == "__main__":
     main()
