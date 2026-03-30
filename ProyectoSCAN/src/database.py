@@ -77,11 +77,18 @@ class DatabaseManager:
                 conn.commit()
 
     def get_all_hosts(self):
-        """recupera todos los hosts de la base de datos."""
+        """Traer los hosts y sus ultimos puertos abiertos."""
         with self._get_connection() as conn:
             conn.row_factory = sqlite3.Row #permite acceder al nombre de la columna
             cursor = conn.cursor()
-            cursor.execute('SELECT * FROM hosts ORDER BY last_seen DESC')
+            #Esta consulta hace un JOIN para traer el ultimo resultado de scan_results
+            query = '''
+                SELECT h.*,
+                (SELECT open_ports FROM scan_results WHERE host_id = h.id ORDER BY timestamp DESC LIMIT 1) as last_ports
+                FROM host h
+                ORDER BY h.last_seen DESC
+            '''
+            cursor.execute(query)
             return cursor.fetchall()
         
     def get_scan_history(self, host_ip: str):
@@ -96,4 +103,18 @@ class DatabaseManager:
                 ORDER BY sr.timestamp DESC
             '''
             cursor.execute(query, (host_ip,))
+            return cursor.fetchall()
+        
+    def get_hosts_with_ports(self):
+        """Trae los hosts y sus últimos puertos abiertos encontrados."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            # Esta consulta hace un JOIN para traer el último resultado de scan_results
+            query = '''
+                SELECT h.*, 
+                (SELECT open_ports FROM scan_results WHERE host_id = h.id ORDER BY timestamp DESC LIMIT 1) as last_ports
+                FROM hosts h
+                ORDER BY h.last_seen DESC
+            '''
+            cursor.execute(query)
             return cursor.fetchall()

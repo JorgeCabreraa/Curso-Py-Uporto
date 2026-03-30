@@ -12,18 +12,18 @@ class NetworkScanner:
         :param ip_range: Rango de IP en formato CIDR (ej: 192.168.1.0/24)
         :return: Lista de diccionarios con IP y MAC de los dispositivos encontrados.
         """
-        print(f"[*] Iniciando descubrimiento en el rango: {ip_range}...")
+        print(f"[*] Starting exploration in the range: {ip_range}...")
         
-        # 1. Crear una petición ARP para preguntar '¿Quién tiene esta IP?'
+        # Crear una petición ARP para preguntar '¿Quién tiene esta IP?'
         arp_request = scapy.ARP(pdst=ip_range)
 
-        # 2. Crear un paquete Ethernet de difusión (broadcast) para enviarlo a todos
+        # Crear un paquete Ethernet de difusión (broadcast) para enviarlo a todos
         broadcast = scapy.Ether(dst="ff:ff:ff:ff:ff:ff")
 
-        # 3. Combinar ambos paquetes
+        # Combinar ambos paquetes
         arp_request_broadcast = broadcast / arp_request
 
-        # 4. Enviar el paquete y recibir las respuestas (timeout de 2 seg para no esperar siempre)
+        # SE envia el paquete y recibir las respuestas (timeout de 2 seg para no esperar siempre)
         answered_list = scapy.srp(arp_request_broadcast, timeout= 2, verbose= False)[0]
         devices = []
 
