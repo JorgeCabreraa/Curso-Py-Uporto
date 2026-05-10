@@ -29,7 +29,7 @@ web_app.py: Servidor Flask que expone los datos y funcionalidades al navegador.
 Clonar el repositorio:
 
 Bash
-git clone https://github.com/TU_USUARIO/ProyectoSCAN.git
+git clone https://github.com/JorgeCabreraa/Scanner.git
 cd ProyectoSCAN
 Instalar dependencias:
 
